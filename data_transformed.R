@@ -1,0 +1,8 @@
+library(dplyr)
+data <- read.csv("drug200.csv")
+table(data$Drug)
+data <-data %>% filter(Drug =="DrugY" | Drug == "drugX")
+table(data$BP)
+data <- data %>% mutate(BP = ifelse(BP == "LOW", "ABNORMAL", ifelse(BP == "HIGH", "ABNORMAL", "NORMAL")))
+table(data$BP)
+save(data, file = "data.RData")

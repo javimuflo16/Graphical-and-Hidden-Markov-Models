@@ -1,0 +1,12 @@
+---
+title: 'Assignment 2: Bayesian networks'
+subtitle: 'Graphical and Hidden Markov Models'
+author: "Ignacio Almodóvar Cárdenas & Javier Muñoz Flores"
+date: "20-04-2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
