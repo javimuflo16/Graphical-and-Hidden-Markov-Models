@@ -8,5 +8,79 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(graph)
+library(gRain)
+library(bnlearn)
+library(Rgraphviz)
 ```
+
+
+# Explain Dataset
+```{r}
+load(file = "data.RData")
+```
+
+# Define a possible network structure
+
+```{r}
+
+ggplot(data=data,aes(x=Sex,y=Na_to_K,color=Sex)) + geom_point()
+ggplot(data=data,aes(x=Age,y=Cholesterol,color=Drug)) + geom_point()
+```
+```{r}
+graph <- model2network("[Age][BP|Age][Cholesterol|Age][Na_to_K|Age][Sex][Drug|BP:Cholesterol:Sex]")
+graphviz.plot(graph)
+```
+Tenemos dosa variables conitinuas. Sin embargo, para poder modela nuestra red como una bayesian network, tenemos que asumir condiciones gausianas como que los nodos categoricos no pueden tener padres conitnuois. Por lo tanto, quitaremos las relaciones supuestas inicialmente para poder plantear el problema correctamente.
+
+```{r}
+graph_2=model2network("[Age][Sex][Cholesterol][Na_to_K|Age][BP|Sex][Drug|BP:Cholesterol]")
+graphviz.plot(graph_2)
+```
+
+
+# Fit the model and use it to make an out of sample prediction
+
+```{r}
+bayesfit <- bn.fit(graph_2,data)
+bayesfit
+bayesfit$E
+```
+
+Now we are going to predict which drug will be taken a normal person, meaning a person with normal blood pressure and normal cholesterol. 
+
+```{r}
+v <- bayesfit$Drug$prob  # Try this with bayesfit or expertfit instead.
+v[1,2,2]
+```
+
+Now we are going to calculate the probability of drugX in general
+
+$P(drugX)=P(drugX|Cholesterol,BP)=P(drugX,Cholesterol=HIGH)*P(Cholesterol=HIGH)+P(drugX,Cholesterol=Normeal)*P(cholesterol=NORMAL)$
+
+
+
+```{r}
+library(magrittr)
+data$Age %<>% as.numeric()
+data$Sex %<>% as.factor() 
+data$BP %<>% as.factor() 
+data$Drug %<>% as.factor()
+data$Cholesterol %<>% as.factor() 
+structure <- hc(data, score = "bic-cg")
+plot(structure)
+```
+
+
+El grafo generado automaticamente tien sentido. Sin embargo, No tiene mucho sentido una relacion entre drogra y Na_to_K
+
+```{r}
+graph_3 <- model2network("[BP][Na_to_K|BP][Cholesterol|BP][Drug|BP:Cholesterol]")
+graphviz.plot(graph_3)
+```
+
+This is the graph that we will be working with.
+
+
 
