@@ -13,15 +13,43 @@ library(graph)
 library(gRain)
 library(bnlearn)
 library(Rgraphviz)
+library(magrittr)
+library(dplyr)
 ```
 
 
-# Explain Dataset
+## Explain Dataset
+
+We have chosen a dataset located in [kaggle](https://www.kaggle.com/prathamtripathi/drug-classification). It contains information about the classification of certain drug types based on different features such as the age, the sex, the blood pressure levels, the cholesterol levels and the sodium-to-potassium ratio.
+
+The dataset contains different types of variables, including continuous and categorical. These are:
+
+ - Age: Continuous integer variable showing the age of each observation.
+ 
+ - Sex: Categorical variable with two levels (F,M) for indicating Female and Male respectively.
+ 
+ - BP: Categorical variable referring to patient's blood pressure. The levels are NORMAL and ABNORMAL. This last level includes both LOW and HIGH blood pressure conditions.
+ 
+ - Cholesterol: That is again a categorical variable including the cholesterol levels of the patient. It includes both NORMAL and ABNORMAL levels, again the last one refers to both HIGH and LOW.
+ 
+ - Na_to_K: Continuous variable showing the Sodium-potassium balance
+ 
+ - Drug: This will be our variable to predict. It contains two different levels (DrugX, DrugY). Depending on the characteristics of each patient it will require one drug or the other one.
+ 
+
 ```{r}
 load(file = "data.RData")
+data$Age %<>% as.numeric()
+data$Sex %<>% as.factor() 
+data$BP %<>% as.factor() 
+data$Drug %<>% as.factor()
+data$Cholesterol %<>% as.factor() 
+summary(data)
 ```
 
-# Define a possible network structure
+As it can be seen, the dataset is more or less well balanced for all the categorical variables except for the Drug one, where the number of levels have a significant difference. However, as this is just an experiment to deal with Bayesian networks and we do not really care about the results obtained, the data contained should be enough to make reasonable predictions.
+
+## Define a possible network structure and give a brief explanation as to why this structure could make sense.  Include a graph of the proposed model.
 
 ```{r}
 
@@ -40,7 +68,7 @@ graphviz.plot(graph_2)
 ```
 
 
-# Fit the model and use it to make an out of sample prediction
+## Fit the model and use it to make an out of sample prediction
 
 ```{r}
 bayesfit <- bn.fit(graph_2,data)
@@ -62,12 +90,6 @@ $P(drugX)=P(drugX|Cholesterol,BP)=P(drugX,Cholesterol=HIGH)*P(Cholesterol=HIGH)+
 
 
 ```{r}
-library(magrittr)
-data$Age %<>% as.numeric()
-data$Sex %<>% as.factor() 
-data$BP %<>% as.factor() 
-data$Drug %<>% as.factor()
-data$Cholesterol %<>% as.factor() 
 structure <- hc(data, score = "bic-cg")
 plot(structure)
 ```
