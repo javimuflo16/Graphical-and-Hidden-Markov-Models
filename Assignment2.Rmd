@@ -30,7 +30,7 @@ The dataset contains different types of variables, including continuous and cate
  
  - BP: Categorical variable referring to patient's blood pressure. The levels are NORMAL and ABNORMAL. This last level includes both LOW and HIGH blood pressure conditions.
  
- - Cholesterol: That is again a categorical variable including the cholesterol levels of the patient. It includes both NORMAL and ABNORMAL levels, again the last one refers to both HIGH and LOW.
+ - Cholesterol: That is again a categorical variable including the cholesterol levels of the patient. It includes both NORMAL and HIGH levels.
  
  - Na_to_K: Continuous variable showing the Sodium-potassium balance
  
@@ -51,16 +51,37 @@ As it can be seen, the dataset is more or less well balanced for all the categor
 
 ## Define a possible network structure and give a brief explanation as to why this structure could make sense.  Include a graph of the proposed model.
 
-```{r}
+Initially both of us do not have much of a clue about any healthcare and the relationship between any of the existent variables. Also, the drugs given do not represent a real drug that you can check in the market or find information about it in Google. Therefore, it is difficult to find prior relationships. However, we will be looking at the data and see if we can find any relation at all.
 
-ggplot(data=data,aes(x=Sex,y=Na_to_K,color=Sex)) + geom_point()
+```{r}
+ggplot(data=data,aes(x=Sex,y=Na_to_K,color=Drug)) + geom_point()
+
+```
+
+Within this plot we are already finding some evidences of relationships. Apparently the type of drug is very relared to the level is Na_to_K in the patient. Above a concentration of 15 it will always suggest to take the DrugY, whereas below it the chosen one will be  DrugX. 
+
+On the other hand, the sex does not look like it has any relationship at all with both Na_to_K and the type of drug.
+
+```{r}
 ggplot(data=data,aes(x=Age,y=Cholesterol,color=Drug)) + geom_point()
 ```
+
+When it comes to cholesterol, it is most likely for older people to have high levels than young people. Indeed we can see that in out plot. There is not many observations for high cholesterol at ages below 30. Therefore we will assume that age and cholesterol have a dependency.
+
+The age in general is always considered when facing medical issues. Young people tempt to have more normal levels of every aspects of health indicators. Therefore we will say that the age is indeed related to every other variable except the Sex, which has nothing to do.
+
+We also have found some evidences on the internet that the sex can be related to blood pressure so ww will also include this deppendency on the graph.
+
+Within this information we assume that this data might have the following structure:
+
 ```{r}
-graph <- model2network("[Age][BP|Age][Cholesterol|Age][Na_to_K|Age][Sex][Drug|BP:Cholesterol:Sex]")
+graph <- model2network("[Age][BP|Age:Sex][Cholesterol|Age][Na_to_K|Age][Sex][Drug|BP:Cholesterol:Na_to_K]")
 graphviz.plot(graph)
 ```
-Tenemos dosa variables conitinuas. Sin embargo, para poder modela nuestra red como una bayesian network, tenemos que asumir condiciones gausianas como que los nodos categoricos no pueden tener padres conitnuois. Por lo tanto, quitaremos las relaciones supuestas inicialmente para poder plantear el problema correctamente.
+
+However, as we said before, we are dealing with some continuous variables in this case. Therefore, in order to be able to model it as a Bayesian network, we have to assume some Gaussian conditions such that any categorical node cannot have a continuous parent. Therefore we will remodel our graph to satisfy this condition and be able to pose the problem correctly.
+
+With this said, the network will now be restructured to this one:
 
 ```{r}
 graph_2=model2network("[Age][Sex][Cholesterol][Na_to_K|Age][BP|Sex][Drug|BP:Cholesterol]")
@@ -70,22 +91,64 @@ graphviz.plot(graph_2)
 
 ## Fit the model and use it to make an out of sample prediction
 
-```{r}
-bayesfit <- bn.fit(graph_2,data)
-bayesfit
-bayesfit$E
-```
-
-Now we are going to predict which drug will be taken a normal person, meaning a person with normal blood pressure and normal cholesterol. 
+We can now easily fit by maximum likelihood the network given in the graph above.
 
 ```{r}
-v <- bayesfit$Drug$prob  # Try this with bayesfit or expertfit instead.
-v[1,2,2]
+mlefit <- bn.fit(graph_2,data)
+mlefit
 ```
 
-Now we are going to calculate the probability of drugX in general
+Once we have the model fitted we can predict for example the probability for any person to take the DrugY using Bayes, which is:
 
-$P(drugX)=P(drugX|Cholesterol,BP)=P(drugX,Cholesterol=HIGH)*P(Cholesterol=HIGH)+P(drugX,Cholesterol=Normeal)*P(cholesterol=NORMAL)$
+$P(DrugY)=\sum_{Cholesterol,BP}(P[Drug=DrugY|Cholesterol,BP]P(Cholesterol)P(BP))$
+
+This expression requires several different probabilities that we can extract from the output given above. However, there are some others that we will have to calculate, such us the probability of blood pressure (normal and abnormal) given that they come from the sex.
+
+So first of all lets calculate the probability for normal BP. 
+
+$$P(BP="Normal")=P(BP="NORMAL"|Sex)=P(BP="Normal"|Sex="M")P(Sex="M")+P(BP="Normal"|Sex="F")P(Sex="F")$$
+
+```{r}
+v <- mlefit$BP  # Try this with bayesfit or expertfit instead.
+pBPgivenSex <- v$prob
+v <- mlefit$Sex
+pSex <- v$prob
+pBP <- unname(pBPgivenSex[2,1]*pSex[1]+pBPgivenSex[2,2]*pSex[2])
+pBP
+```
+
+On the other hand, the probability for cholesterol can be directly obtained as it is not conditioned to any other node.
+
+```{r}
+v=mlefit$Cholesterol
+pCholesterol=v$prob
+pCholesterol
+```
+
+We can finally compute the whole probability for an individual to take the drugY using the information given in the output.
+
+```{r}
+v <- mlefit$Drug$prob
+
+p1=v[2,2,2]*pCholesterol[2]*pBP
+p2=v[2,1,2]*pCholesterol[2]*(1-pBP)
+p3=v[2,2,1]*pCholesterol[1]*pBP
+p4=v[2,1,1]*pCholesterol[1]*(1-pBP)
+
+pDrugY=unname(p1+p2+p3+p4)
+pDrugY
+```
+
+We can also compute for example the probability of giving a the DrugY to a normal individual, that is normal blod pressure and normal cholesterol. Using likelihood weightings we obtain:
+
+```{r}
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw")
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=10000)
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=100000)
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=1000000)
+```
+
+Therefore, we can conclude by saying that when a random individual comes, without any knowledge about its health, he will be prescribed to take the drugY with a probability of 63%. However, knowing that he has normal levels of blood pressure and cholesterol, he is not very likely to take the drugY.
 
 
 
