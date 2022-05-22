@@ -100,13 +100,14 @@ mlefit
 
 Once we have the model fitted we can predict for example the probability for any person to take the DrugY using Bayes, which is:
 
-$P(DrugY)=\sum_{Cholesterol,BP}(P[Drug=DrugY|Cholesterol,BP]P(Cholesterol)P(BP))$
+$$P(DrugY)=\sum_{Cholesterol,BP}(P[Drug=DrugY|Cholesterol,BP]P(Cholesterol)P(BP))$$
 
 This expression requires several different probabilities that we can extract from the output given above. However, there are some others that we will have to calculate, such us the probability of blood pressure (normal and abnormal) given that they come from the sex.
 
 So first of all lets calculate the probability for normal BP. 
 
-$$P(BP="Normal")=P(BP="NORMAL"|Sex)=P(BP="Normal"|Sex="M")P(Sex="M")+P(BP="Normal"|Sex="F")P(Sex="F")$$
+$$P(BP="Normal")=P(BP="NORMAL"|Sex)=$$
+$$= P(BP="Normal"|Sex="M")P(Sex="M")+P(BP="Normal"|Sex="F")P(Sex="F")$$
 
 ```{r}
 v <- mlefit$BP  # Try this with bayesfit or expertfit instead.
@@ -142,15 +143,19 @@ pDrugY
 We can also compute for example the probability of giving a the DrugY to a normal individual, that is normal blod pressure and normal cholesterol. Using likelihood weightings we obtain:
 
 ```{r}
-cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw")
-cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=10000)
-cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=100000)
-cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL"),method="lw",n=1000000)
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL")
+        ,method="lw")
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL")
+        ,method="lw",n=10000)
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL")
+        ,method="lw",n=100000)
+cpquery(mlefit, (Drug=="DrugY"), evidence=list(BP="NORMAL",Cholesterol="NORMAL")
+        ,method="lw",n=1000000)
 ```
 
 Therefore, we can conclude by saying that when a random individual comes, without any knowledge about its health, he will be prescribed to take the drugY with a probability of 63%. However, knowing that he has normal levels of blood pressure and cholesterol, he is not very likely to take the drugY.
 
-## d) Try to fit the graph structure of the model using one or more of the different approaches we saw in class.  Do the fits make sense?  If not you could use whitelists or blacklists to make certain links impossible.
+## Fit the graph structure of the model using one or more of the different approaches we saw in class. 
 
 In the previous sections, we have assumed that the structure of the network were the correct one basing on different logical approaches. However, it exists different procedures to obtain the graph structure in a more unbiased way.
 
@@ -198,7 +203,7 @@ plot(structure_mmhc)
 
 Again, it considers *Drug*-*Na_to_K* dependency and it does not include important relationships which we have found through the score based methods.
 
-## e) Which of the proposed graphical structures is the best?
+## Which of the proposed graphical structures is the best?
 
 In view of the results obtained in the previous section, where we have used algorithms which have helped us to learn the conditional independence structure, we can draw the following conclusions:
 
@@ -214,7 +219,7 @@ final_structure <- model2network("[BP][Na_to_K|BP][Cholesterol|BP][Drug|BP:Chole
 graphviz.plot(final_structure)
 ```
 
-## e) Provide a brief summary of your results. 
+## Summary of the results. 
 
 To sum up, we conclude this work enumerating the most important insights obtained:
 
