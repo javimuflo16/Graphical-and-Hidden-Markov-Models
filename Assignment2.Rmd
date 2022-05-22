@@ -87,13 +87,38 @@ Now we are going to calculate the probability of drugX in general
 
 $P(drugX)=P(drugX|Cholesterol,BP)=P(drugX,Cholesterol=HIGH)*P(Cholesterol=HIGH)+P(drugX,Cholesterol=Normeal)*P(cholesterol=NORMAL)$
 
+## d) Try to fit the graph structure of the model using one or more of the different approaches we saw in class.  Do the fits make sense?  If not you could use whitelists or blacklists to make certain links impossible.
 
+In the previous sections, we have assumed that the structure of the network were the correct one basing on different logical approaches. However, it exists different procedures to obtain the graph structure in a more unbiased way.
+
+We will try to implement the three approaches saw in class:
+ - Constraint based: with the `aimb` method.
+ - Score based: with the `hc`method. We will use both AIC and BIC score functions to evaluate the fit.
+ - Hybrid: with the `mmhc` method.
+
+First, we perform the first approach mentioned. This technique can be slow as it has to analyse each pair of nodes in the network. However, since our network is not too very large, the computational cost is not very high.
 
 ```{r}
-structure <- hc(data, score = "bic-cg")
-plot(structure)
+structure_iamb <- iamb(data)
+plot(structure_iamb)
 ```
+The structure obtained by this technique suggested that three out of the six nodes have not dependencies with others. This composition does not agree with our first approach, since it does not take into account some relationships we have assumed that were important as *Na_to_K* - *BP*.
 
+Let's analyse the structure suggested by the score based methods. First, we look at the output basing on BIC.
+
+```{r}
+structure_bic <- hc(data, score = "bic-cg")
+plot(structure_bic)
+```
+As we can see in the plot, this method includes the *Cholesterol*-*Drug* and *Drug*-*Na_to_K* dependencies. However, it also does not consider *BP*-*
+```{r}
+structure_aic <- hc(data, score = "aic-cg")
+plot(structure_aic)
+```
+```{r}
+structure_mmhc <- mmhc(data)
+plot(structure_mmhc)
+```
 
 El grafo generado automaticamente tien sentido. Sin embargo, No tiene mucho sentido una relacion entre drogra y Na_to_K
 
