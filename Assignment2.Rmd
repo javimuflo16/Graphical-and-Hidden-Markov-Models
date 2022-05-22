@@ -92,42 +92,75 @@ $P(drugX)=P(drugX|Cholesterol,BP)=P(drugX,Cholesterol=HIGH)*P(Cholesterol=HIGH)+
 In the previous sections, we have assumed that the structure of the network were the correct one basing on different logical approaches. However, it exists different procedures to obtain the graph structure in a more unbiased way.
 
 We will try to implement the three approaches saw in class:
- - Constraint based: with the `aimb` method.
- - Score based: with the `hc`method. We will use both AIC and BIC score functions to evaluate the fit.
- - Hybrid: with the `mmhc` method.
+
+ - **Constraint based**: with the `aimb` method.
+ 
+ - **Score based**: with the `hc`method. We will use both AIC and BIC score functions to evaluate the fit.
+ 
+ - **Hybrid**: with the `mmhc` method.
 
 First, we perform the first approach mentioned. This technique can be slow as it has to analyse each pair of nodes in the network. However, since our network is not too very large, the computational cost is not very high.
 
-```{r}
+```{r, warning=FALSE}
 structure_iamb <- iamb(data)
 plot(structure_iamb)
 ```
-The structure obtained by this technique suggested that three out of the six nodes have not dependencies with others. This composition does not agree with our first approach, since it does not take into account some relationships we have assumed that were important as *Na_to_K* - *BP*.
 
-Let's analyse the structure suggested by the score based methods. First, we look at the output basing on BIC.
+The structure obtained by this technique suggested that three out of the six nodes have not dependencies with others. This composition does not agree with our first approach, since it does not take into account some relationships we have assumed that were important and it eliminates so many dependencies.
+
+Let's analyse the structure suggested by the **score based** methods. First, we look at the output basing on BIC.
 
 ```{r}
 structure_bic <- hc(data, score = "bic-cg")
 plot(structure_bic)
 ```
-As we can see in the plot, this method includes the *Cholesterol*-*Drug* and *Drug*-*Na_to_K* dependencies. However, it also does not consider *BP*-*
+
+As we can see in the plot, this method includes the *Cholesterol*-*Drug* and *Drug*-*Na_to_K* dependencies. While the first of the two relationships could makes sense, the second one does not make it. It could make sense an opposite direction of the arrow between *Drug*-*Na_to_K*, but in Conditional Gaussian Bayesian networks like this, categorical nodes have no continuous node parents, so it cannot be possible.
+
+Let's see the structure proposed using AIC method.
+
 ```{r}
 structure_aic <- hc(data, score = "aic-cg")
 plot(structure_aic)
 ```
+
+We can see that the dependency *BP*-*Na_to_K* have been added, which is reasonable. Nevertheless, the dependency *Drug*-*Na_to_K* stays.
+
+Finally, we will see the struture suggested by the last of the approaches mentioned: **hybrid method**, a combination of the two previous ones.
+
 ```{r}
 structure_mmhc <- mmhc(data)
 plot(structure_mmhc)
 ```
 
-El grafo generado automaticamente tien sentido. Sin embargo, No tiene mucho sentido una relacion entre drogra y Na_to_K
+Again, it considers *Drug*-*Na_to_K* dependency and it does not include important relationships which we have found through the score based methods.
+
+## e) Which of the proposed graphical structures is the best?
+
+In view of the results obtained in the previous section, where we have used algorithms which have helped us to learn the conditional independence structure, we can draw the following conclusions:
+
+- We should eliminate the *Drug*-*Na_to_K* since we consider it does not make sense with the analysis of or network.
+- The nodes *Age* and *Sex* should be eliminated since it does not appear in any of the four structures proposed by the methods.
+- The structure suggested by the score based methods adds important relationships which should be considered from a health point of view.
+- The structure proposed by the AIC method should be selected as the best one instead of the one suggested by the BIC method because it considers *BP*-*Na_to_K* dependency. According to some research, the sodium (Na)/potassium (K) ratio could be associated with blood pressure (BP), so this relationship should be added to our network ([Reference](https://www.nature.com/articles/s41440-020-00536-7)).
+
+Thus, we delete the *Drug*-*Na_to_K* dependency as well as the nodes *Age* and *Sex* and we draw the most optimal graphical structure.
 
 ```{r}
-graph_3 <- model2network("[BP][Na_to_K|BP][Cholesterol|BP][Drug|BP:Cholesterol]")
-graphviz.plot(graph_3)
+final_structure <- model2network("[BP][Na_to_K|BP][Cholesterol|BP][Drug|BP:Cholesterol]")
+graphviz.plot(final_structure)
 ```
 
-This is the graph that we will be working with.
+## e) Provide a brief summary of your results. 
 
+To sum up, we conclude this work enumerating the most important insights obtained:
+
+- The first approach for modelling the graph structure, i.e. the structure assumed of ourselves, has not been matched with the ones proposed by the algorithms. However, the dependency *Cholesterol*-*Drug*, which stays in almost all the structures proposed, seems to be the most reliable. 
+
+- It has been very important the assumptions in a network with both categorical and continuous variables like ours, i.e. a Conditional Gaussian Bayesian network. It is because we have taken into account that categorical nodes have no continuous node parents and it has not allowed to draw some dependencies that at first we could have considered to include.
+
+- The probability that a random patient whose health we know nothing about, is prescribed to take the drugY is around 63%. Nevertheless, if we know that a patient has normal levels of blood pressure and cholesterol, it is more likely that he should take the drugY.
+
+- The algorithms that provide a network structure agree that the variables *Age* and *Sex* should not be included in the network.
 
 
